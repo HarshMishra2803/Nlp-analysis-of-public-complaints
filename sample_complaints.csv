@@ -1,0 +1,21 @@
+complaint_id,complaint_text,date,department
+1,"The internet service is extremely slow and keeps disconnecting every few minutes. This has been going on for weeks.",2024-01-15,Internet Services
+2,"I was charged twice for the same monthly bill. The billing department needs to fix this error immediately.",2024-01-16,Billing
+3,"Customer service representative was very rude and unhelpful when I called about my account issues.",2024-01-17,Customer Service
+4,"Water supply has been disrupted for three days without any prior notice to residents.",2024-01-18,Water Department
+5,"Garbage collection has been irregular in our neighborhood. Sometimes they skip entire weeks.",2024-01-19,Waste Management
+6,"Road maintenance is poor with many potholes that damage vehicles. Need immediate attention.",2024-01-20,Public Works
+7,"Public transportation is always delayed and overcrowded during peak hours.",2024-01-21,Transportation
+8,"Hospital staff provided excellent care during my emergency visit. Very satisfied with the service.",2024-01-22,Healthcare
+9,"Library services have improved significantly this year with new digital resources and extended hours.",2024-01-23,Library Services
+10,"Park maintenance team does a great job keeping the facilities clean and well-maintained.",2024-01-24,Parks & Recreation
+11,"Power outages are becoming too frequent in our area. The electrical grid needs upgrading.",2024-01-25,Utilities
+12,"Tax office staff were helpful in resolving my property tax assessment questions.",2024-01-26,Tax Department
+13,"School bus service is unreliable and often arrives late causing students to miss classes.",2024-01-27,Education
+14,"Police response time was excellent during the recent break-in incident in our neighborhood.",2024-01-28,Police Department
+15,"Building permit process is too slow and bureaucratic. Took months to get approval.",2024-01-29,Building Department
+16,"Fire department conducted an excellent safety inspection and provided valuable recommendations.",2024-01-30,Fire Department
+17,"Social services office provided great support during difficult times. Staff was compassionate.",2024-01-31,Social Services
+18,"Street lighting is inadequate in many residential areas creating safety concerns.",2024-02-01,Public Works
+19,"Animal control responded quickly to reports of stray dogs in the neighborhood.",2024-02-02,Animal Control
+20,"DMV office has long wait times and inefficient service processes that need improvement.",2024-02-03,DMV
