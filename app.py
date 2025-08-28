@@ -28,24 +28,67 @@ st.set_page_config(
 st.markdown("""
 <style>
     .main-header {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
         color: #1f77b4;
         text-align: center;
         margin-bottom: 2rem;
+        font-weight: 700;
     }
     .metric-container {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 1rem;
         margin: 0.5rem 0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     .stAlert {
         margin-top: 1rem;
+        border-radius: 0.5rem;
+    }
+    .analysis-section {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        margin: 1rem 0;
+        border-left: 4px solid #1f77b4;
+    }
+    .filter-container {
+        background-color: #ffffff;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin: 1rem 0;
+    }
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .sidebar .stSelectbox > div > div {
+        background-color: #f0f2f6;
+        border-radius: 0.5rem;
     }
 </style>
 """, unsafe_allow_html=True)
 
 def main():
+    # Initialize session state
+    if 'analysis_results' not in st.session_state:
+        st.session_state.analysis_results = None
+    if 'df_analyzed' not in st.session_state:
+        st.session_state.df_analyzed = None
+    if 'selected_column' not in st.session_state:
+        st.session_state.selected_column = None
+    
     # Header
     st.markdown('<h1 class="main-header">📊 NLP Analysis of Public Complaints</h1>', unsafe_allow_html=True)
     st.markdown("---")
@@ -70,6 +113,13 @@ def main():
         st.subheader("Display Options")
         show_wordcloud = st.checkbox("Show Word Cloud", value=True)
         show_raw_data = st.checkbox("Show Raw Data", value=False)
+        
+        # Clear analysis button
+        if st.button("🔄 Clear Analysis", help="Reset analysis and start over"):
+            st.session_state.analysis_results = None
+            st.session_state.df_analyzed = None
+            st.session_state.selected_column = None
+            st.rerun()
     
     # Main content
     if uploaded_file is not None:
@@ -94,6 +144,7 @@ def main():
                 text_columns,
                 help="Choose the column containing the complaint text to analyze"
             )
+            st.session_state.selected_column = selected_column
             
             # Data preview
             with st.expander("📋 Data Preview", expanded=False):
@@ -118,24 +169,36 @@ def main():
                         df_analyzed['category_label'] = [
                             results['categories']['labels'][cat] for cat in results['categories']['clusters']
                         ]
+                    
+                    # Store in session state
+                    st.session_state.analysis_results = results
+                    st.session_state.df_analyzed = df_analyzed
                 
                 st.success("✅ Analysis completed!")
+            
+            # Display results if analysis has been run
+            if st.session_state.analysis_results is not None and st.session_state.df_analyzed is not None:
+                results = st.session_state.analysis_results
+                df_analyzed = st.session_state.df_analyzed
                 
                 # Summary Statistics
+                st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
                 st.header("📈 Summary Statistics")
-                stats = nlp_utils.get_summary_stats(df, selected_column, results)
+                stats = nlp_utils.get_summary_stats(df, st.session_state.selected_column, results)
                 
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric("Total Complaints", stats['total_complaints'])
+                    st.metric("Total Complaints", stats['total_complaints'], delta=None)
                 with col2:
                     st.metric("Avg Text Length", f"{stats['avg_text_length']:.0f} chars")
                 with col3:
                     st.metric("Avg Polarity", f"{stats['avg_polarity']:.3f}")
                 with col4:
                     st.metric("Categories Found", stats['num_categories'])
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Sentiment Analysis
+                st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
                 st.header("😊 Sentiment Analysis")
                 
                 col1, col2 = st.columns(2)
@@ -153,6 +216,7 @@ def main():
                             'negative': '#DC143C'
                         }
                     )
+                    fig_pie.update_layout(font_size=14, title_font_size=16)
                     st.plotly_chart(fig_pie, use_container_width=True)
                 
                 with col2:
@@ -162,12 +226,16 @@ def main():
                         x='polarity',
                         nbins=20,
                         title="Sentiment Polarity Distribution",
-                        labels={'polarity': 'Polarity Score', 'count': 'Frequency'}
+                        labels={'polarity': 'Polarity Score', 'count': 'Frequency'},
+                        color_discrete_sequence=['#667eea']
                     )
-                    fig_hist.add_vline(x=0, line_dash="dash", line_color="red")
+                    fig_hist.add_vline(x=0, line_dash="dash", line_color="red", annotation_text="Neutral")
+                    fig_hist.update_layout(font_size=14, title_font_size=16)
                     st.plotly_chart(fig_hist, use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Complaint Categories
+                st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
                 st.header("📂 Complaint Categories")
                 
                 if 'category' in df_analyzed.columns:
@@ -182,20 +250,27 @@ def main():
                             x=category_labels,
                             y=category_counts.values,
                             title="Complaint Categories Distribution",
-                            labels={'x': 'Category', 'y': 'Number of Complaints'}
+                            labels={'x': 'Category', 'y': 'Number of Complaints'},
+                            color_discrete_sequence=['#764ba2']
                         )
                         fig_cat.update_xaxes(tickangle=45)
+                        fig_cat.update_layout(font_size=14, title_font_size=16)
                         st.plotly_chart(fig_cat, use_container_width=True)
                     
                     with col2:
                         st.subheader("Category Details")
                         for i, label in enumerate(results['categories']['labels']):
                             count = sum(1 for c in results['categories']['clusters'] if c == i)
-                            st.write(f"**Category {i+1}:** {label}")
-                            st.write(f"Count: {count}")
-                            st.write("---")
+                            st.markdown(f"""
+                            <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0; border-left: 3px solid #667eea;">
+                                <strong>Category {i+1}:</strong> {label}<br>
+                                <strong>Count:</strong> {count}
+                            </div>
+                            """, unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Keywords Analysis
+                st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
                 st.header("🔍 Keywords Analysis")
                 
                 col1, col2 = st.columns([2, 1])
@@ -210,18 +285,25 @@ def main():
                         y=list(keywords),
                         orientation='h',
                         title=f"Top {n_keywords} Keywords by TF-IDF Score",
-                        labels={'x': 'TF-IDF Score', 'y': 'Keywords'}
+                        labels={'x': 'TF-IDF Score', 'y': 'Keywords'},
+                        color_discrete_sequence=['#667eea']
                     )
-                    fig_kw.update_layout(height=600)
+                    fig_kw.update_layout(height=600, font_size=14, title_font_size=16)
                     st.plotly_chart(fig_kw, use_container_width=True)
                 
                 with col2:
                     st.subheader("Top Keywords")
                     for i, (keyword, score) in enumerate(results['keywords'][:10], 1):
-                        st.write(f"{i}. **{keyword}** ({score:.3f})")
+                        st.markdown(f"""
+                        <div style="background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.3rem; margin: 0.3rem 0;">
+                            <strong>{i}.</strong> {keyword} <span style="color: #667eea;">({score:.3f})</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Word Cloud
                 if show_wordcloud and results['wordcloud']:
+                    st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
                     st.header("☁️ Word Cloud")
                     
                     # Convert wordcloud to image
@@ -229,32 +311,36 @@ def main():
                     ax.imshow(results['wordcloud'], interpolation='bilinear')
                     ax.axis('off')
                     st.pyplot(fig_wc)
+                    st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Filtering and Search
-                st.header("🔎 Data Exploration")
+                # Filtering and Search - MOVED OUTSIDE THE BUTTON BLOCK
+                st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+                st.header("🔎 Data Exploration & Filtering")
                 
                 # Filters
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
                     sentiment_filter = st.multiselect(
-                        "Filter by Sentiment",
+                        "🎭 Filter by Sentiment",
                         options=df_analyzed['sentiment'].unique(),
-                        default=df_analyzed['sentiment'].unique()
+                        default=df_analyzed['sentiment'].unique(),
+                        key="sentiment_filter"
                     )
                 
                 with col2:
                     if 'category' in df_analyzed.columns:
                         category_filter = st.multiselect(
-                            "Filter by Category",
+                            "📂 Filter by Category",
                             options=sorted(df_analyzed['category'].unique()),
-                            default=sorted(df_analyzed['category'].unique())
+                            default=sorted(df_analyzed['category'].unique()),
+                            key="category_filter"
                         )
                     else:
                         category_filter = None
                 
                 with col3:
-                    search_term = st.text_input("Search in complaints", "")
+                    search_term = st.text_input("🔍 Search in complaints", "", key="search_input")
                 
                 # Apply filters
                 filtered_df = df_analyzed[df_analyzed['sentiment'].isin(sentiment_filter)]
@@ -264,22 +350,29 @@ def main():
                 
                 if search_term:
                     filtered_df = filtered_df[
-                        filtered_df[selected_column].str.contains(search_term, case=False, na=False)
+                        filtered_df[st.session_state.selected_column].str.contains(search_term, case=False, na=False)
                     ]
                 
-                st.write(f"**Showing {len(filtered_df)} of {len(df_analyzed)} complaints**")
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 0.5rem; text-align: center; margin: 1rem 0;">
+                    <h3 style="margin: 0;">Showing {len(filtered_df)} of {len(df_analyzed)} complaints</h3>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                # Display filtered data
-                display_columns = [selected_column, 'sentiment', 'polarity']
+                # Display filtered data with enhanced styling
+                display_columns = [st.session_state.selected_column, 'sentiment', 'polarity']
                 if 'category_label' in filtered_df.columns:
                     display_columns.append('category_label')
                 
                 st.dataframe(
                     filtered_df[display_columns].head(100),
-                    use_container_width=True
+                    use_container_width=True,
+                    height=400
                 )
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Download Options
+                st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
                 st.header("💾 Download Results")
                 
                 col1, col2 = st.columns(2)
@@ -288,33 +381,38 @@ def main():
                     # CSV download
                     csv_data = df_analyzed.to_csv(index=False)
                     st.download_button(
-                        label="📄 Download as CSV",
+                        label="📄 Download Complete Analysis as CSV",
                         data=csv_data,
                         file_name=f"complaint_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
+                        mime="text/csv",
+                        use_container_width=True
                     )
                 
                 with col2:
                     # Generate PDF report
-                    if st.button("📑 Generate PDF Report"):
+                    if st.button("📑 Generate PDF Report", use_container_width=True):
                         pdf_buffer = generate_pdf_report(stats, results, df_analyzed)
                         st.download_button(
                             label="📑 Download PDF Report",
                             data=pdf_buffer,
                             file_name=f"complaint_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                            mime="application/pdf"
+                            mime="application/pdf",
+                            use_container_width=True
                         )
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Raw data display
                 if show_raw_data:
+                    st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
                     st.header("📊 Raw Analysis Data")
                     
-                    with st.expander("Sentiment Data"):
-                        st.dataframe(results['sentiment'])
+                    with st.expander("📈 Sentiment Analysis Data", expanded=False):
+                        st.dataframe(results['sentiment'], use_container_width=True)
                     
-                    with st.expander("Keywords Data"):
+                    with st.expander("🔍 Keywords Analysis Data", expanded=False):
                         keywords_df = pd.DataFrame(results['keywords'], columns=['Keyword', 'TF-IDF Score'])
-                        st.dataframe(keywords_df)
+                        st.dataframe(keywords_df, use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
         
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
