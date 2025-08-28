@@ -1,17 +1,18 @@
-# NLP Analysis of Public Complaints
+# 📊 NLP Analysis of Public Complaints
 
-An interactive Streamlit dashboard for analyzing public complaint data using advanced NLP techniques including sentiment analysis, complaint categorization, keyword extraction, and word cloud generation.
+A professional web application for analyzing public complaints using advanced Natural Language Processing techniques. Features a modern, presentation-ready dashboard with comprehensive sentiment analysis, automatic categorization, and interactive visualizations.
 
 ## 🚀 Features
 
-- **📊 Interactive Dashboard**: User-friendly Streamlit interface
+- **📊 Professional Dashboard**: Modern blue-themed UI perfect for presentations
 - **😊 Sentiment Analysis**: Analyze positive, negative, and neutral sentiments using TextBlob
 - **📂 Complaint Categorization**: Automatic grouping using K-means clustering on TF-IDF vectors
 - **🔍 Keyword Extraction**: Identify most important terms using TF-IDF scoring
 - **☁️ Word Cloud Generation**: Visual representation of frequent words
 - **🔎 Advanced Filtering**: Search and filter complaints by sentiment, category, and keywords
 - **📈 Interactive Visualizations**: Charts and graphs using Plotly and Matplotlib
-- **💾 Export Options**: Download results as CSV or PDF reports
+- **💾 Export Options**: Download results as CSV or comprehensive PDF reports
+- **🎨 Professional Theme**: Clean, modern design suitable for academic presentations
 
 ## 📋 Project Structure
 

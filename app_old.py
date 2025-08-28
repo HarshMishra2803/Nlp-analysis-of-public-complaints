@@ -1,19 +1,19 @@
+"""
+NLP Analysis of Public Complaints - Streamlit Dashboard
+Interactive dashboard for analyzing public complaint data using NLP techniques.
+"""
+
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
-from wordcloud import WordCloud
-from datetime import datetime
-import base64
-from io import BytesIO
+from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+import seaborn as sns
 from fpdf import FPDF
-import warnings
-warnings.filterwarnings('ignore')
-
-# Import custom NLP utilities
+import base64
+import io
+from datetime import datetime
 import nlp_utils
 
 # Page configuration
@@ -29,191 +29,303 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    /* Soft Maroon theme base */
+    /* Dark theme base */
     .stApp {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
-        color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+        color: #e2e8f0;
     }
     
-    /* Hero section - Clean Blue Gradient */
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    /* Hero section */
     .hero-section {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        padding: 2rem;
-        border-radius: 1rem;
         text-align: center;
+        padding: 3rem 0;
         margin-bottom: 2rem;
-        border: 1px solid #60a5fa;
-        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+        border-radius: 1.5rem;
+        border: 2px solid #6366f1;
+        box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
     }
     
     .main-header {
-        font-size: 2.5rem;
+        background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #c084fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 3.5rem;
         font-weight: 800;
-        margin: 0 0 0.5rem 0;
-        color: #ffffff;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        margin: 0 0 1rem 0;
+        font-family: 'Inter', sans-serif;
+        text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
     }
     
-    /* Section containers - Professional Gray-Blue */
+    /* Section containers */
     .section-container {
-        background: linear-gradient(135deg, #475569 0%, #64748b 100%);
-        padding: 1.5rem;
-        border-radius: 1rem;
-        margin: 1rem 0;
-        border: 1px solid #94a3b8;
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        margin: 2rem 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 92, 246, 0.1);
+        border: 1px solid #6366f1;
     }
     
     .section-header {
-        font-size: 1.5rem;
+        font-size: 1.8rem;
         font-weight: 700;
-        color: #e2e8f0;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #60a5fa;
+        color: #c084fc;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #6366f1;
+        text-shadow: 0 0 10px rgba(192, 132, 252, 0.3);
     }
     
-    /* Metric cards - Clean Blue Accent */
+    /* Metric cards */
     .metric-card {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        padding: 1rem;
-        border-radius: 0.75rem;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 1rem;
         text-align: center;
-        border: 1px solid #60a5fa;
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        margin: 1rem 0;
+        border: 1px solid #a855f7;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 35px rgba(139, 92, 246, 0.6);
     }
     
     .metric-value {
-        font-size: 2rem;
+        font-size: 2.5rem;
         font-weight: 800;
-        color: #ffffff;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
     }
     
     .metric-label {
-        font-size: 0.9rem;
-        color: #dbeafe;
+        font-size: 1rem;
+        opacity: 0.9;
         font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
     }
     
-    /* Category and keyword cards - Subtle Gray */
-    .category-card, .keyword-item {
-        background: rgba(148, 163, 184, 0.2);
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        margin-bottom: 0.5rem;
-        border-left: 3px solid #60a5fa;
-        color: #f1f5f9;
+    /* Category cards */
+    .category-card {
+        background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
+        color: #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        margin: 1rem 0;
+        border-left: 4px solid #8b5cf6;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        border: 1px solid #6366f1;
     }
     
+    /* Keyword items */
     .keyword-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        margin: 0.75rem 0;
+        border: 1px solid #6366f1;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     
-    /* Results counter - Professional Accent */
+    /* Results counter */
     .results-counter {
-        background: rgba(59, 130, 246, 0.2);
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        font-weight: 600;
-        color: #dbeafe;
-        margin-bottom: 1rem;
-        text-align: center;
-        border: 1px solid #60a5fa;
-    }
-    
-    /* Filter container - Consistent Theme */
-    .filter-container {
-        background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
         padding: 1.5rem;
         border-radius: 1rem;
-        margin: 1rem 0;
-        border: 1px solid #94a3b8;
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+        text-align: center;
+        font-weight: 700;
+        margin: 2rem 0;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        border: 1px solid #a855f7;
+    }
+        gap: 0.5rem;
     }
     
-    /* Streamlit component overrides for professional theme */
+    /* Filter container */
+    .filter-container {
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+        padding: 2rem;
+        border-radius: 1.5rem;
+        margin: 1.5rem 0;
+        border: 1px solid #6366f1;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Streamlit component overrides for dark theme */
     .stSelectbox > div > div {
-        background-color: #475569 !important;
-        color: #f1f5f9 !important;
-        border: 1px solid #94a3b8 !important;
+        background-color: #1e1b4b !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #6366f1 !important;
     }
     
     .stTextInput > div > div > input {
-        background-color: #475569 !important;
-        color: #f1f5f9 !important;
-        border: 1px solid #94a3b8 !important;
+        background-color: #1e1b4b !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #6366f1 !important;
     }
     
     .stMultiSelect > div > div {
-        background-color: #475569 !important;
-        color: #f1f5f9 !important;
-        border: 1px solid #94a3b8 !important;
+        background-color: #1e1b4b !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #6366f1 !important;
     }
     
     .stDataFrame {
-        background-color: #475569 !important;
-        color: #f1f5f9 !important;
-        border: 1px solid #94a3b8 !important;
+        background-color: #1e1b4b !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #6366f1 !important;
         border-radius: 0.75rem !important;
     }
     
     .stDataFrame table {
-        background-color: #475569 !important;
-        color: #f1f5f9 !important;
+        background-color: #1e1b4b !important;
+        color: #e2e8f0 !important;
     }
     
     .stDataFrame th {
-        background-color: #3b82f6 !important;
-        color: #ffffff !important;
+        background-color: #312e81 !important;
+        color: #c084fc !important;
         font-weight: 700 !important;
     }
     
     .stDataFrame td {
-        background-color: #475569 !important;
-        color: #f1f5f9 !important;
-        border-color: #94a3b8 !important;
+        background-color: #1e1b4b !important;
+        color: #e2e8f0 !important;
+        border-color: #6366f1 !important;
     }
     
     .stButton > button {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
         color: white !important;
-        border: 1px solid #60a5fa !important;
+        border: 1px solid #a855f7 !important;
         border-radius: 0.75rem !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3) !important;
         transition: all 0.3s ease !important;
     }
     
     .stButton > button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4) !important;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5) !important;
     }
     
     .stExpander {
-        background-color: #475569 !important;
-        border: 1px solid #94a3b8 !important;
+        background-color: #1e1b4b !important;
+        border: 1px solid #6366f1 !important;
         border-radius: 0.75rem !important;
     }
     
     .stExpander > div {
-        background-color: #475569 !important;
-        color: #f1f5f9 !important;
+        background-color: #1e1b4b !important;
+        color: #e2e8f0 !important;
     }
     
+    /* Sidebar styling */
+    .css-1lcbmhc {
+        background-color: #0f0f23 !important;
+    }
+    
+    .css-17eq0hr {
+        background-color: #1a1a2e !important;
+        color: #e2e8f0 !important;
+    }
+    
+    /* File uploader styling */
     .stFileUploader > div {
-        background-color: #475569 !important;
-        border: 2px dashed #60a5fa !important;
+        background-color: #1e1b4b !important;
+        border: 2px dashed #6366f1 !important;
         border-radius: 1rem !important;
     }
     
     .stFileUploader label {
-        color: #dbeafe !important;
+        color: #c084fc !important;
         font-weight: 600 !important;
     }
+</style>
+""", unsafe_allow_html=True)
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .keyword-item {
+        background: white;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        margin: 0.5rem 0;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .keyword-item:hover {
+        border-color: #667eea;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    }
+    
+    .stDataFrame {
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    
+    .upload-area {
+        border: 2px dashed #cbd5e1;
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+    }
+    
+    .upload-area:hover {
+        border-color: #667eea;
+        background: #f0f4ff;
+    }
+    
+    .stAlert {
+        border-radius: 1rem;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .stExpander {
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 0.75rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -230,7 +342,7 @@ def main():
     st.markdown("""
     <div class="hero-section">
         <h1 class="main-header">📊 NLP Analysis of Public Complaints</h1>
-        <p style="font-size: 1rem; color: #dbeafe; margin: 0; font-weight: 500;">
+        <p style="font-size: 1.2rem; color: #64748b; margin: 0; font-weight: 400;">
             Transform complaint data into actionable insights with advanced Natural Language Processing
         </p>
     </div>
@@ -273,6 +385,8 @@ def main():
                     df = pd.read_csv(uploaded_file)
                 else:
                     df = pd.read_excel(uploaded_file)
+            
+            st.success(f"✅ Data loaded successfully! {len(df)} records found.")
             
             # Column selection
             text_columns = df.select_dtypes(include=['object']).columns.tolist()
@@ -377,7 +491,7 @@ def main():
                             'negative': '#DC143C'
                         }
                     )
-                    fig_pie.update_layout(font_size=14, title_font_size=16, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    fig_pie.update_layout(font_size=14, title_font_size=16)
                     st.plotly_chart(fig_pie, use_container_width=True)
                 
                 with col2:
@@ -391,7 +505,7 @@ def main():
                         color_discrete_sequence=['#667eea']
                     )
                     fig_hist.add_vline(x=0, line_dash="dash", line_color="red", annotation_text="Neutral")
-                    fig_hist.update_layout(font_size=14, title_font_size=16, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    fig_hist.update_layout(font_size=14, title_font_size=16)
                     st.plotly_chart(fig_hist, use_container_width=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
@@ -415,7 +529,7 @@ def main():
                             color_discrete_sequence=['#764ba2']
                         )
                         fig_cat.update_xaxes(tickangle=45)
-                        fig_cat.update_layout(font_size=14, title_font_size=16, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                        fig_cat.update_layout(font_size=14, title_font_size=16)
                         st.plotly_chart(fig_cat, use_container_width=True)
                     
                     with col2:
@@ -449,7 +563,7 @@ def main():
                         labels={'x': 'TF-IDF Score', 'y': 'Keywords'},
                         color_discrete_sequence=['#667eea']
                     )
-                    fig_kw.update_layout(height=600, font_size=14, title_font_size=16, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    fig_kw.update_layout(height=600, font_size=14, title_font_size=16)
                     st.plotly_chart(fig_kw, use_container_width=True)
                 
                 with col2:
@@ -472,40 +586,37 @@ def main():
                     fig_wc, ax = plt.subplots(figsize=(12, 6))
                     ax.imshow(results['wordcloud'], interpolation='bilinear')
                     ax.axis('off')
-                    fig_wc.patch.set_facecolor('none')
                     st.pyplot(fig_wc)
                     st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Filtering and Search
+                # Filtering and Search - MOVED OUTSIDE THE BUTTON BLOCK
                 st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-                st.markdown('<div class="section-header">🔍 Filter & Search Results</div>', unsafe_allow_html=True)
+                st.header("🔎 Data Exploration & Filtering")
                 
+                # Filters
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
                     sentiment_filter = st.multiselect(
-                        "Filter by Sentiment:",
-                        options=['positive', 'neutral', 'negative'],
-                        default=['positive', 'neutral', 'negative']
+                        "🎭 Filter by Sentiment",
+                        options=df_analyzed['sentiment'].unique(),
+                        default=df_analyzed['sentiment'].unique(),
+                        key="sentiment_filter"
                     )
                 
                 with col2:
                     if 'category' in df_analyzed.columns:
-                        category_options = list(range(len(results['categories']['labels'])))
                         category_filter = st.multiselect(
-                            "Filter by Category:",
-                            options=category_options,
-                            default=category_options,
-                            format_func=lambda x: f"Category {x+1}: {results['categories']['labels'][x]}"
+                            "📂 Filter by Category",
+                            options=sorted(df_analyzed['category'].unique()),
+                            default=sorted(df_analyzed['category'].unique()),
+                            key="category_filter"
                         )
                     else:
-                        category_filter = []
+                        category_filter = None
                 
                 with col3:
-                    search_term = st.text_input(
-                        "Search in complaints:",
-                        placeholder="Enter keywords to search..."
-                    )
+                    search_term = st.text_input("🔍 Search in complaints", "", key="search_input")
                 
                 # Apply filters
                 filtered_df = df_analyzed[df_analyzed['sentiment'].isin(sentiment_filter)]
@@ -554,22 +665,16 @@ def main():
                     )
                 
                 with col2:
-                    # PDF report download
+                    # Generate PDF report
                     if st.button("📑 Generate PDF Report", use_container_width=True):
-                        try:
-                            with st.spinner("Generating PDF report..."):
-                                pdf_buffer = nlp_utils.generate_pdf_report(results, stats)
-                                st.success("PDF report generated successfully!")
-                                st.download_button(
-                                    label="📑 Download PDF Report",
-                                    data=pdf_buffer,
-                                    file_name=f"complaint_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                    mime="application/pdf",
-                                    use_container_width=True
-                                )
-                        except Exception as e:
-                            st.error(f"Error generating PDF: {str(e)}")
-                            st.error("Please ensure all analysis data is available.")
+                        pdf_buffer = generate_pdf_report(stats, results, df_analyzed)
+                        st.download_button(
+                            label="📑 Download PDF Report",
+                            data=pdf_buffer,
+                            file_name=f"complaint_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Raw data display
@@ -586,45 +691,89 @@ def main():
                     st.markdown('</div>', unsafe_allow_html=True)
         
         except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-            st.error("Please check your data format and try again.")
+            st.error(f"Error processing file: {str(e)}")
+            st.write("Please ensure your file contains text data and is properly formatted.")
     
     else:
-        # Welcome message when no file is uploaded
+        # Welcome message and instructions
+        st.info("👆 Please upload a CSV or Excel file containing complaint data to begin analysis.")
+        
+        # Sample data format
+        st.subheader("📋 Expected Data Format")
+        sample_data = pd.DataFrame({
+            'complaint_id': [1, 2, 3],
+            'complaint_text': [
+                "The internet service is very slow and unreliable",
+                "Billing department charged me incorrectly",
+                "Customer service was helpful and resolved my issue quickly"
+            ],
+            'date': ['2024-01-01', '2024-01-02', '2024-01-03']
+        })
+        st.dataframe(sample_data, use_container_width=True)
+        
         st.markdown("""
-        <div class="section-container">
-            <div class="section-header">🚀 Welcome to NLP Complaint Analysis</div>
-            <p style="font-size: 1rem; line-height: 1.4; color: #f1f5f9; margin-bottom: 1rem;">
-                Upload your complaint data using the sidebar to get started with advanced NLP analysis:
-            </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem; margin-top: 1rem;">
-                <div style="background: rgba(59, 130, 246, 0.15); padding: 0.75rem; border-radius: 0.5rem; border-left: 3px solid #60a5fa;">
-                    <strong style="color: #dbeafe;">📊 Sentiment Analysis</strong><br>
-                    <span style="font-size: 0.9rem; color: #f1f5f9;">Understand emotional tone</span>
-                </div>
-                <div style="background: rgba(59, 130, 246, 0.15); padding: 0.75rem; border-radius: 0.5rem; border-left: 3px solid #60a5fa;">
-                    <strong style="color: #dbeafe;">📂 Auto Categorization</strong><br>
-                    <span style="font-size: 0.9rem; color: #f1f5f9;">Group similar complaints</span>
-                </div>
-                <div style="background: rgba(59, 130, 246, 0.15); padding: 0.75rem; border-radius: 0.5rem; border-left: 3px solid #60a5fa;">
-                    <strong style="color: #dbeafe;">🔍 Keyword Extraction</strong><br>
-                    <span style="font-size: 0.9rem; color: #f1f5f9;">Identify important terms</span>
-                </div>
-                <div style="background: rgba(59, 130, 246, 0.15); padding: 0.75rem; border-radius: 0.5rem; border-left: 3px solid #60a5fa;">
-                    <strong style="color: #dbeafe;">📈 Interactive Charts</strong><br>
-                    <span style="font-size: 0.9rem; color: #f1f5f9;">Explore with visualizations</span>
-                </div>
-                <div style="background: rgba(59, 130, 246, 0.15); padding: 0.75rem; border-radius: 0.5rem; border-left: 3px solid #60a5fa;">
-                    <strong style="color: #dbeafe;">🔎 Filter & Search</strong><br>
-                    <span style="font-size: 0.9rem; color: #f1f5f9;">Find specific complaints</span>
-                </div>
-                <div style="background: rgba(59, 130, 246, 0.15); padding: 0.75rem; border-radius: 0.5rem; border-left: 3px solid #60a5fa;">
-                    <strong style="color: #dbeafe;">💾 Export Options</strong><br>
-                    <span style="font-size: 0.9rem; color: #f1f5f9;">Download CSV/PDF reports</span>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        **Requirements:**
+        - At least one column containing complaint text
+        - CSV or Excel format (.csv, .xlsx, .xls)
+        - UTF-8 encoding recommended for CSV files
+        
+        **Features:**
+        - 😊 **Sentiment Analysis**: Analyze positive, negative, and neutral sentiments
+        - 📂 **Complaint Categorization**: Automatically group similar complaints
+        - 🔍 **Keyword Extraction**: Identify most important terms and phrases
+        - ☁️ **Word Cloud**: Visual representation of frequent words
+        - 🔎 **Interactive Filtering**: Search and filter results
+        - 💾 **Export Options**: Download results as CSV or PDF report
+        """)
+
+
+def generate_pdf_report(stats, results, df_analyzed):
+    """Generate PDF report of the analysis"""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 16)
+    
+    # Title
+    pdf.cell(0, 10, 'NLP Analysis of Public Complaints - Report', 0, 1, 'C')
+    pdf.ln(10)
+    
+    # Summary Statistics
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, 'Summary Statistics', 0, 1)
+    pdf.set_font('Arial', '', 12)
+    
+    pdf.cell(0, 8, f'Total Complaints: {stats["total_complaints"]}', 0, 1)
+    pdf.cell(0, 8, f'Average Text Length: {stats["avg_text_length"]:.0f} characters', 0, 1)
+    pdf.cell(0, 8, f'Average Polarity: {stats["avg_polarity"]:.3f}', 0, 1)
+    pdf.cell(0, 8, f'Number of Categories: {stats["num_categories"]}', 0, 1)
+    pdf.ln(5)
+    
+    # Sentiment Distribution
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, 'Sentiment Distribution', 0, 1)
+    pdf.set_font('Arial', '', 12)
+    
+    for sentiment, count in stats['sentiment_distribution'].items():
+        percentage = (count / stats['total_complaints']) * 100
+        pdf.cell(0, 8, f'{sentiment.capitalize()}: {count} ({percentage:.1f}%)', 0, 1)
+    pdf.ln(5)
+    
+    # Top Keywords
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, 'Top Keywords', 0, 1)
+    pdf.set_font('Arial', '', 12)
+    
+    for i, keyword in enumerate(stats['top_keywords'], 1):
+        pdf.cell(0, 8, f'{i}. {keyword}', 0, 1)
+    
+    # Save to buffer
+    pdf_buffer = io.BytesIO()
+    pdf_string = pdf.output(dest='S').encode('latin-1')
+    pdf_buffer.write(pdf_string)
+    pdf_buffer.seek(0)
+    
+    return pdf_buffer.getvalue()
+
 
 if __name__ == "__main__":
     main()

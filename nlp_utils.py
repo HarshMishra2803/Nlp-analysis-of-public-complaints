@@ -18,6 +18,8 @@ from collections import Counter
 import warnings
 import io
 import base64
+from fpdf import FPDF
+from datetime import datetime
 
 warnings.filterwarnings('ignore')
 
@@ -423,3 +425,75 @@ def get_summary_stats(df, text_column, results):
     }
     
     return stats
+
+
+def generate_pdf_report(results, stats):
+    """
+    Generate a PDF report of the NLP analysis results
+    
+    Args:
+        results (dict): Analysis results from complete_nlp_analysis
+        stats (dict): Summary statistics from get_summary_stats
+        
+    Returns:
+        bytes: PDF file as bytes buffer
+    """
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 16)
+    
+    # Title
+    pdf.cell(0, 10, 'NLP Analysis Report - Public Complaints', 0, 1, 'C')
+    pdf.ln(5)
+    
+    # Date
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(0, 10, f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', 0, 1, 'C')
+    pdf.ln(10)
+    
+    # Summary Statistics
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, 'Summary Statistics', 0, 1, 'L')
+    pdf.ln(5)
+    
+    pdf.set_font('Arial', '', 12)
+    pdf.cell(0, 8, f'Total Complaints: {stats["total_complaints"]}', 0, 1, 'L')
+    pdf.cell(0, 8, f'Average Text Length: {stats["avg_text_length"]:.0f} characters', 0, 1, 'L')
+    pdf.cell(0, 8, f'Average Polarity: {stats["avg_polarity"]:.3f}', 0, 1, 'L')
+    pdf.cell(0, 8, f'Number of Categories: {stats["num_categories"]}', 0, 1, 'L')
+    pdf.ln(10)
+    
+    # Sentiment Analysis
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, 'Sentiment Analysis', 0, 1, 'L')
+    pdf.ln(5)
+    
+    pdf.set_font('Arial', '', 12)
+    sentiment_counts = results['sentiment']['sentiment'].value_counts()
+    for sentiment, count in sentiment_counts.items():
+        percentage = (count / len(results['sentiment'])) * 100
+        pdf.cell(0, 8, f'{sentiment.title()}: {count} ({percentage:.1f}%)', 0, 1, 'L')
+    pdf.ln(10)
+    
+    # Top Keywords
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, 'Top Keywords', 0, 1, 'L')
+    pdf.ln(5)
+    
+    pdf.set_font('Arial', '', 12)
+    for i, (keyword, score) in enumerate(results['keywords'][:10], 1):
+        pdf.cell(0, 8, f'{i}. {keyword}: {score:.3f}', 0, 1, 'L')
+    pdf.ln(10)
+    
+    # Categories
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, 'Complaint Categories', 0, 1, 'L')
+    pdf.ln(5)
+    
+    pdf.set_font('Arial', '', 12)
+    for i, label in enumerate(results['categories']['labels'], 1):
+        count = sum(1 for c in results['categories']['clusters'] if c == i-1)
+        pdf.cell(0, 8, f'Category {i}: {label} ({count} complaints)', 0, 1, 'L')
+    
+    # Convert to bytes
+    return pdf.output(dest='S').encode('latin-1')
