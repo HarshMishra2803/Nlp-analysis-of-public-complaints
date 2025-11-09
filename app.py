@@ -558,15 +558,19 @@ def main():
                     if st.button("📑 Generate PDF Report", use_container_width=True):
                         try:
                             with st.spinner("Generating PDF report..."):
-                                pdf_buffer = nlp_utils.generate_pdf_report(results, stats)
-                                st.success("PDF report generated successfully!")
-                                st.download_button(
-                                    label="📑 Download PDF Report",
-                                    data=pdf_buffer,
-                                    file_name=f"complaint_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                    mime="application/pdf",
-                                    use_container_width=True
-                                )
+                                try:
+                                    pdf_data = nlp_utils.generate_pdf_report(results, stats)
+                                    st.success("PDF report generated successfully!")
+                                    st.download_button(
+                                        label="📑 Download PDF Report",
+                                        data=pdf_data,
+                                        file_name=f"complaint_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                        mime="application/pdf",
+                                        use_container_width=True
+                                    )
+                                except Exception as e:
+                                    st.error(f"Error creating PDF download: {str(e)}")
+                                    st.error("Please try again or contact support if the issue persists.")
                         except Exception as e:
                             st.error(f"Error generating PDF: {str(e)}")
                             st.error("Please ensure all analysis data is available.")

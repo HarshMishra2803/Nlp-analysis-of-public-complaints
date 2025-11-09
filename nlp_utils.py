@@ -495,5 +495,10 @@ def generate_pdf_report(results, stats):
         count = sum(1 for c in results['categories']['clusters'] if c == i-1)
         pdf.cell(0, 8, f'Category {i}: {label} ({count} complaints)', 0, 1, 'L')
     
-    # Convert to bytes
-    return pdf.output(dest='S').encode('latin-1')
+    # Save PDF to a bytes buffer and return
+    import io
+    buffer = io.BytesIO()
+    pdf_output = pdf.output(dest='S').encode('latin-1') if isinstance(pdf.output(dest='S'), str) else pdf.output(dest='S')
+    buffer.write(pdf_output)
+    buffer.seek(0)
+    return buffer.getvalue()
