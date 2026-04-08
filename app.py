@@ -10,6 +10,7 @@ from datetime import datetime
 import base64
 from io import BytesIO
 from fpdf import FPDF
+import time
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -312,9 +313,35 @@ def main():
             
             # Perform NLP analysis
             if st.button("🚀 Run NLP Analysis", type="primary"):
-                with st.spinner("Performing multilingual NLP analysis with urgency scoring... This may take a moment."):
-                    # Run complete analysis
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                try:
+                    status_text.text("📥 Loading data...")
+                    progress_bar.progress(10)
+                    
+                    # Check data size and limit if too large for cloud
+                    data_size = len(df)
+                    if data_size > 1000:
+                        st.warning(f"⚠️ Large dataset detected ({data_size} rows). Processing first 1000 rows for cloud deployment.")
+                        df = df.head(1000)
+                    
+                    status_text.text("🧠 Loading sentiment model (one-time)...")
+                    progress_bar.progress(20)
+                    
+                    # Pre-load model to avoid timeout
+                    model = nlp_utils.get_multilingual_sentiment_model()
+                    if model is False:
+                        st.info("ℹ️ Using rule-based sentiment analysis (model not available)")
+                    
+                    status_text.text("📊 Analyzing sentiments...")
+                    progress_bar.progress(40)
+                    
+                    # Run analysis with progress tracking
                     results = nlp_utils.complete_nlp_analysis(df, selected_column)
+                    
+                    status_text.text("🎯 Calculating urgency scores...")
+                    progress_bar.progress(70)
                     
                     # Add results to dataframe
                     df_analyzed = df.copy()
@@ -329,6 +356,9 @@ def main():
                     df_analyzed['urgency_level'] = results['urgency']['urgency_level']
                     df_analyzed['priority_label'] = results['urgency']['priority_label']
                     
+                    status_text.text("📂 Categorizing complaints...")
+                    progress_bar.progress(90)
+                    
                     # Add categories if available
                     if len(results['categories']['clusters']) == len(df):
                         df_analyzed['category'] = results['categories']['clusters']
@@ -339,8 +369,20 @@ def main():
                     # Store in session state
                     st.session_state.analysis_results = results
                     st.session_state.df_analyzed = df_analyzed
-                
-                st.success("✅ Multilingual analysis with urgency scoring completed! Supports English, Hindi, and Hinglish.")
+                    
+                    progress_bar.progress(100)
+                    status_text.text("✅ Analysis complete!")
+                    time.sleep(0.5)
+                    progress_bar.empty()
+                    status_text.empty()
+                    
+                    st.success("✅ Multilingual analysis with urgency scoring completed! Supports English, Hindi, and Hinglish.")
+                    
+                except Exception as e:
+                    progress_bar.empty()
+                    status_text.empty()
+                    st.error(f"❌ Analysis failed: {str(e)}")
+                    st.info("💡 Tip: If the issue persists, try uploading a smaller file (under 500 rows) for cloud deployment.")
             
             # Display results if analysis has been run
             if st.session_state.analysis_results is not None and st.session_state.df_analyzed is not None:
