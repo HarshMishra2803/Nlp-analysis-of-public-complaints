@@ -1,0 +1,16 @@
+complaint_id,complaint_text,date,category
+1,The service is very slow and frustrating. I am very disappointed with the customer support.,2024-01-01,Service
+2,यह सेवा बहुत खराब है और कोई मदद नहीं मिल रही है। मैं बहुत निराश हूँ।,2024-01-02,सेवा
+3,Bohot badiya service hai! Acha kaam kiya team ne. Thank you so much.,2024-01-03,Feedback
+4,Internet connection keeps dropping every few minutes. This is very annoying.,2024-01-04,Technical
+5,मेरा बिल गलत आया है। कृपया इसे ठीक करें।,2024-01-05,बिलिंग
+6,Your app is not working properly. It crashes frequently and I lost my data.,2024-01-06,App
+7,Billing department ne mujhe galat charge kiya. Ye bilkul theek nahi hai.,2024-01-07,Billing
+8,Customer service was very helpful and resolved my issue quickly. Great experience!,2024-01-08,Service
+9,आपका ऐप बहुत धीमा है। कृपया इसे ठीक करें।,2024-01-09,ऐप
+10,Bakwas service hai ye! Koi response nahi mil raha hai. Bahut pareshan kar diya hai.,2024-01-10,Complaint
+11,The product quality is excellent. I am very satisfied with my purchase.,2024-01-11,Product
+12,मुझे मेरा ऑर्डर अभी तक नहीं मिला। कब तक आएगा?,2024-01-12,डिलीवरी
+13,Staff was very rude and unprofessional. I want to file a complaint.,2024-01-13,Staff
+14,Delivey late ho gayi aur package bhi damage tha. Very bad experience.,2024-01-14,Delivery
+15,Best service ever! Highly recommended to everyone.,2024-01-15,Feedback
