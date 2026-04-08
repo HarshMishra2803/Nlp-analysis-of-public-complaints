@@ -11,8 +11,16 @@ import base64
 from io import BytesIO
 from fpdf import FPDF
 import time
+import os
 import warnings
 warnings.filterwarnings('ignore')
+
+# Detect if running on cloud (Render) vs local
+# On Render, skip the heavy 500MB transformer model
+is_cloud = os.environ.get('RENDER', 'false').lower() == 'true' or os.environ.get('PORT') is not None
+if is_cloud:
+    os.environ['SKIP_HEAVY_MODEL'] = 'true'
+    print("☁️ Cloud deployment detected - using lightweight rule-based analysis")
 
 # Import custom NLP utilities
 import nlp_utils
@@ -326,13 +334,18 @@ def main():
                         st.warning(f"⚠️ Large dataset detected ({data_size} rows). Processing first 1000 rows for cloud deployment.")
                         df = df.head(1000)
                     
-                    status_text.text("🧠 Loading sentiment model (one-time)...")
+                    # Check if using cloud mode (lightweight)
+                    if is_cloud:
+                        status_text.text("☁️ Cloud mode: Using lightweight rule-based analysis...")
+                        st.info("ℹ️ Running in cloud mode - using fast rule-based sentiment analysis (no 500MB model download)")
+                    else:
+                        status_text.text("🧠 Loading sentiment model (one-time)...")
                     progress_bar.progress(20)
                     
                     # Pre-load model to avoid timeout
                     model = nlp_utils.get_multilingual_sentiment_model()
                     if model is False:
-                        st.info("ℹ️ Using rule-based sentiment analysis (model not available)")
+                        st.info("ℹ️ Using rule-based sentiment analysis")
                     
                     status_text.text("📊 Analyzing sentiments...")
                     progress_bar.progress(40)

@@ -560,9 +560,16 @@ def get_multilingual_sentiment_model():
     global _multilingual_sentiment_model
     if _multilingual_sentiment_model is None:
         try:
+            import os
+            
+            # Skip heavy model on cloud deployment (Render free tier can't handle 500MB model)
+            if os.environ.get('SKIP_HEAVY_MODEL', 'false').lower() == 'true':
+                print("Skipping heavy transformer model (cloud mode)")
+                _multilingual_sentiment_model = False
+                return _multilingual_sentiment_model
+            
             # Import here to avoid slow startup
             from transformers import pipeline
-            import os
             
             # Disable progress bars to avoid clutter
             os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
